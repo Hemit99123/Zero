@@ -60,6 +60,7 @@ import { TagInput } from 'emblor';
 import { useAtom } from 'jotai';
 import { toast } from 'sonner';
 import AIToggleButton from '../ai-toggle-button';
+import MailListSkeleton from '../ui/loaders/mail-list';
 
 interface Tag {
   id: string;

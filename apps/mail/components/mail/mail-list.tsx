@@ -964,7 +964,7 @@ export const MailList = memo(({ isCompact }: MailListProps) => {
         }}
       >
         <ScrollArea hideScrollbar className="hide-scrollbar h-full overflow-auto">
-          {isLoading || !items.length ? (
+          {isLoading || isFetching || !items.length ? (
             <MailListSkeleton count={5} />
           ) : !isLoading && !items.length ? (
             <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center">
