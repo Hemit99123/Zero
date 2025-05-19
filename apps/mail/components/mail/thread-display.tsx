@@ -39,7 +39,7 @@ import { handleUnsubscribe } from '@/lib/email-utils.client';
 import { useThread, useThreads } from '@/hooks/use-threads';
 import { useAISidebar } from '@/components/ui/ai-sidebar';
 import { useHotkeysContext } from 'react-hotkeys-hook';
-import { MailDisplaySkeleton } from '../ui/loaders/mail-skeleton';
+import { MailDisplaySkeleton } from '../ui/loaders/mail-thread-skeleton';
 import { useTRPC } from '@/providers/query-provider';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
