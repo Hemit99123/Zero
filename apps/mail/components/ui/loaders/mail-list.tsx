@@ -22,7 +22,6 @@ const MailListSkeleton = ({ count }: MailListSkeletonProps) => {
                     <div className="flex w-full flex-row items-center justify-between">
                       <div className="flex flex-row items-center gap-[4px]">
                         <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-6 rounded-md" />
                       </div>
                       <Skeleton className="h-3 w-12" />
                     </div>
@@ -37,12 +36,6 @@ const MailListSkeleton = ({ count }: MailListSkeletonProps) => {
                       <Skeleton className="mt-1 h-3 w-4/5" />
                     </div>
                   </div>
-                </div>
-              </div>
-              <div className="ml-[47px] mt-2 flex w-full items-center justify-between gap-1 px-4">
-                <div className="flex gap-1">
-                  <Skeleton className="h-5 w-16 rounded-full" />
-                  <Skeleton className="h-5 w-20 rounded-full" />
                 </div>
               </div>
             </div>
