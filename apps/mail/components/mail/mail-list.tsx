@@ -65,6 +65,7 @@ import items from './demo.json';
 import { useAtom } from 'jotai';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import  MailListSkeleton  from '../ui/loaders/mail-list';
 
 const HOVER_DELAY = 1000; // ms before prefetching
 
@@ -964,10 +965,8 @@ export const MailList = memo(({ isCompact }: MailListProps) => {
       >
         <ScrollArea hideScrollbar className="hide-scrollbar h-full overflow-auto">
           {isLoading ? (
-            <div className="flex h-32 items-center justify-center">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-900 border-t-transparent dark:border-white dark:border-t-transparent" />
-            </div>
-          ) : !items || items.length === 0 ? (
+            <MailListSkeleton count={5} />
+          ) : !isLoading && !items.length ? (
             <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center">
               <div className="flex flex-col items-center justify-center gap-2 text-center">
                 <Image
