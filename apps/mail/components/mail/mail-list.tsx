@@ -450,7 +450,6 @@ const Thread = memo(
     const content =
       latestMessage && getThreadData ? (
         <div
-          onTouchEnd={onClick ? onClick(latestMessage) : undefined}
           className={'hover:bg-offsetLight hover:bg-primary/5 select-none border-b md:border-none'}
           onClick={onClick ? onClick(latestMessage) : undefined}
         >
