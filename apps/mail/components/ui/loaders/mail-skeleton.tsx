@@ -1,7 +1,7 @@
 import { Archive, Copy, Maximize2, Minimize2, X, Reply, MoreVertical } from 'lucide-react';
 import { Separator } from '@radix-ui/react-separator';
-import { Skeleton } from '../ui/skeleton';
-import { Button } from '../ui/button';
+import { Skeleton } from '../skeleton';
+import { Button } from '../button';
 import { cn } from '@/lib/utils';
 
 export const MailDisplaySkeleton = ({ isFullscreen }: { isFullscreen?: boolean }) => {
