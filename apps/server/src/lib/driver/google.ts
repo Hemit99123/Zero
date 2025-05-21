@@ -11,11 +11,12 @@ import { parseAddressList, parseFrom, wasSentWithTLS } from '../email-utils';
 import type { IOutgoingMessage, Label, ParsedMessage } from '../../types';
 import { sanitizeTipTapHtml } from '../sanitize-tip-tap-html';
 import type { MailManager, ManagerConfig } from './types';
-import { type gmail_v1, google } from 'googleapis';
+import { type gmail_v1, gmail } from '@googleapis/gmail';
+import { OAuth2Client } from 'google-auth-library';
 import type { CreateDraftData } from '../schemas';
-import { setTimeout } from 'timers/promises';
 import { createMimeMessage } from 'mimetext';
 import { cleanSearchValue } from '../utils';
+import { people } from '@googleapis/people';
 import { env } from 'cloudflare:workers';
 import * as he from 'he';
 
@@ -24,7 +25,7 @@ export class GoogleMailManager implements MailManager {
   private gmail;
 
   constructor(public config: ManagerConfig) {
-    this.auth = new google.auth.OAuth2(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET);
+    this.auth = new OAuth2Client(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET);
 
     if (config.auth)
       this.auth.setCredentials({
@@ -32,9 +33,8 @@ export class GoogleMailManager implements MailManager {
         scope: this.getScope(),
       });
 
-    this.gmail = google.gmail({ version: 'v1', auth: this.auth });
+    this.gmail = gmail({ version: 'v1', auth: this.auth });
   }
-
   public getScope(): string {
     return [
       'https://www.googleapis.com/auth/gmail.modify',
@@ -42,7 +42,6 @@ export class GoogleMailManager implements MailManager {
       'https://www.googleapis.com/auth/userinfo.email',
     ].join(' ');
   }
-
   public getAttachment(messageId: string, attachmentId: string) {
     return this.withErrorHandler(
       'getAttachment',
@@ -62,7 +61,6 @@ export class GoogleMailManager implements MailManager {
       { messageId, attachmentId },
     );
   }
-
   public getEmailAliases() {
     return this.withErrorHandler('getEmailAliases', async () => {
       const profile = await this.gmail.users.getProfile({
@@ -95,7 +93,6 @@ export class GoogleMailManager implements MailManager {
       return aliases;
     });
   }
-
   public markAsRead(threadIds: string[]) {
     return this.withErrorHandler(
       'markAsRead',
@@ -105,7 +102,6 @@ export class GoogleMailManager implements MailManager {
       { threadIds },
     );
   }
-
   public markAsUnread(threadIds: string[]) {
     return this.withErrorHandler(
       'markAsUnread',
@@ -115,14 +111,14 @@ export class GoogleMailManager implements MailManager {
       { threadIds },
     );
   }
-
   public getUserInfo() {
     return this.withErrorHandler(
       'getUserInfo',
       async () => {
-        const res = await google
-          .people({ version: 'v1', auth: this.auth })
-          .people.get({ resourceName: 'people/me', personFields: 'names,photos,emailAddresses' });
+        const res = await people({ version: 'v1', auth: this.auth }).people.get({
+          resourceName: 'people/me',
+          personFields: 'names,photos,emailAddresses',
+        });
         return {
           address: res.data.emailAddresses?.[0]?.value ?? '',
           name: res.data.names?.[0]?.displayName ?? '',
@@ -132,7 +128,6 @@ export class GoogleMailManager implements MailManager {
       {},
     );
   }
-
   public getTokens<T>(code: string) {
     return this.withErrorHandler(
       'getTokens',
@@ -143,7 +138,6 @@ export class GoogleMailManager implements MailManager {
       { code },
     );
   }
-
   public count() {
     return this.withErrorHandler(
       'count',
@@ -161,9 +155,10 @@ export class GoogleMailManager implements MailManager {
               userId: 'me',
               id: label.id ?? undefined,
             });
-            const count = label.name === 'TRASH' 
-                          ? Number(res.data.threadsTotal) 
-                          : Number(res.data.threadsUnread);
+            const count =
+              label.name === 'TRASH'
+                ? Number(res.data.threadsTotal)
+                : Number(res.data.threadsUnread);
             return {
               label: res.data.name ?? res.data.id ?? '',
               count: count ?? undefined,
@@ -174,7 +169,6 @@ export class GoogleMailManager implements MailManager {
       { email: this.config.auth?.email },
     );
   }
-
   public list(params: {
     folder: string;
     query?: string;
@@ -209,7 +203,6 @@ export class GoogleMailManager implements MailManager {
       { folder, q, maxResults, _labelIds, pageToken, email: this.config.auth?.email },
     );
   }
-
   public get(id: string) {
     return this.withErrorHandler(
       'get',
@@ -353,7 +346,6 @@ export class GoogleMailManager implements MailManager {
       { id, email: this.config.auth?.email },
     );
   }
-
   public create(data: IOutgoingMessage) {
     return this.withErrorHandler(
       'create',
@@ -371,7 +363,6 @@ export class GoogleMailManager implements MailManager {
       { data, email: this.config.auth?.email },
     );
   }
-
   public delete(id: string) {
     return this.withErrorHandler(
       'delete',
@@ -382,7 +373,6 @@ export class GoogleMailManager implements MailManager {
       { id },
     );
   }
-
   public normalizeIds(ids: string[]) {
     return this.withSyncErrorHandler(
       'normalizeIds',
@@ -395,7 +385,6 @@ export class GoogleMailManager implements MailManager {
       { ids },
     );
   }
-
   public modifyLabels(
     threadIds: string[],
     options: { addLabels: string[]; removeLabels: string[] },
@@ -411,7 +400,6 @@ export class GoogleMailManager implements MailManager {
       { threadIds, options },
     );
   }
-
   public sendDraft(draftId: string, data: IOutgoingMessage) {
     return this.withErrorHandler(
       'sendDraft',
@@ -663,9 +651,6 @@ export class GoogleMailManager implements MailManager {
       return false;
     }
   }
-
-  // ===============================================
-
   private async modifyThreadLabels(
     threadIds: string[],
     requestBody: gmail_v1.Schema$ModifyThreadRequest,
@@ -700,7 +685,7 @@ export class GoogleMailManager implements MailManager {
       allResults.push(...chunkResults);
 
       if (i + chunkSize < threadIds.length) {
-        await setTimeout(delayBetweenChunks);
+        await new Promise((resolve) => setTimeout(resolve, delayBetweenChunks));
       }
     }
 
@@ -990,7 +975,6 @@ export class GoogleMailManager implements MailManager {
       rawMessage: draft.message,
     };
   }
-
   private async withErrorHandler<T>(
     operation: string,
     fn: () => Promise<T> | T,
@@ -1037,16 +1021,15 @@ export class GoogleMailManager implements MailManager {
     }
   }
 
-  private findAttachments(parts: any[]): any[] {
-    let results: any[] = [];
+  private findAttachments(parts: gmail_v1.Schema$MessagePart[]): gmail_v1.Schema$MessagePart[] {
+    let results: gmail_v1.Schema$MessagePart[] = [];
 
     for (const part of parts) {
       if (part.filename && part.filename.length > 0) {
         const contentDisposition =
-          part.headers?.find((h: any) => h.name?.toLowerCase() === 'content-disposition')?.value ||
-          '';
+          part.headers?.find((h) => h.name?.toLowerCase() === 'content-disposition')?.value || '';
         const isInline = contentDisposition.toLowerCase().includes('inline');
-        const hasContentId = part.headers?.some((h: any) => h.name?.toLowerCase() === 'content-id');
+        const hasContentId = part.headers?.some((h) => h.name?.toLowerCase() === 'content-id');
 
         if (!isInline || (isInline && !hasContentId)) {
           results.push(part);

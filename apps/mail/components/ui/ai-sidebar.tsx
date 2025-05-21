@@ -1,5 +1,3 @@
-'use client';
-
 import {
   X,
   FileText,
@@ -30,7 +28,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import { ArrowsPointingIn, ArrowsPointingOut, PanelLeftOpen, Phone } from '../icons/icons';
 import { AI_SIDEBAR_COOKIE_NAME, SIDEBAR_COOKIE_MAX_AGE } from '@/lib/constants';
 import { StyledEmailAssistantSystemPrompt, AiChatPrompt } from '@/lib/prompts';
-import { usePathname, useSearchParams, useParams } from 'next/navigation';
+import { Link, useLocation, useParams } from 'react-router';
 import { useSearchValue } from '@/hooks/use-search-value';
 import { useQueryClient } from '@tanstack/react-query';
 import { AIChat } from '@/components/create/ai-chat';
@@ -43,16 +41,12 @@ import { Button } from '@/components/ui/button';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useLabels } from '@/hooks/use-labels';
 import { Gauge } from '@/components/ui/gauge';
-import { useCustomer } from 'autumn-js/next';
 import { useChat } from '@ai-sdk/react';
 import { getCookie } from '@/lib/utils';
 import { Textarea } from './textarea';
 import { useQueryState } from 'nuqs';
 import { cn } from '@/lib/utils';
-import { env } from '@/lib/env';
-import Image from 'next/image';
 import { toast } from 'sonner';
-import Link from 'next/link';
 
 interface ChatHeaderProps {
   onClose: () => void;
@@ -382,8 +376,8 @@ function AISidebar({ className }: AISidebarProps) {
   } = useAISidebar();
   const [resetKey, setResetKey] = useState(0);
   const [showPricing, setShowPricing] = useState(false);
-  const pathname = usePathname();
-  const { attach, customer, chatMessages, track, refetch: refetchBilling } = useBilling();
+  const { isPro, chatMessages, track, refetch: refetchBilling } = useBilling();
+  const pathname = useLocation().pathname;
   const queryClient = useQueryClient();
   const trpc = useTRPC();
   const [threadId, setThreadId] = useQueryState('threadId');
@@ -394,7 +388,7 @@ function AISidebar({ className }: AISidebarProps) {
   // Initialize shared chat state that will be used by both desktop and mobile views
   // This ensures conversation continuity when switching between viewport sizes
   const chatState = useChat({
-    api: `${env.NEXT_PUBLIC_BACKEND_URL}/api/chat`,
+    api: `${import.meta.env.VITE_PUBLIC_BACKEND_URL}/api/chat`,
     fetch: (url, options) => fetch(url, { ...options, credentials: 'include' }),
     maxSteps: 5,
     body: {
@@ -444,17 +438,6 @@ function AISidebar({ className }: AISidebarProps) {
     },
   });
 
-  const isPro = useMemo(() => {
-    return (
-      customer &&
-      Array.isArray(customer.products) &&
-      customer.products.some(
-        (product: any) =>
-          product.id.includes('pro-example') || product.name.includes('pro-example'),
-      )
-    );
-  }, [customer]);
-
   const handleUpgrade = () => {
     setShowPricing(true);
   };
@@ -489,9 +472,9 @@ function AISidebar({ className }: AISidebarProps) {
                 defaultSize={22}
                 minSize={22}
                 maxSize={22}
-                className="bg-panelLight dark:bg-panelDark mb-1 mr-1 hidden h-[calc(98vh+10px)] border-[#E7E7E7] shadow-sm md:block md:rounded-2xl md:border md:shadow-sm dark:border-[#252525]"
+                className="bg-panelLight dark:bg-panelDark mb-1 mr-1 hidden h-[calc(100dvh-10px)] border-[#E7E7E7] shadow-sm md:block md:rounded-2xl md:border md:shadow-sm dark:border-[#252525]"
               >
-                <div className={cn('h-[calc(98vh+6px)]', 'flex flex-col', '', className)}>
+                <div className={cn('h-[calc(98vh)]', 'flex flex-col', '', className)}>
                   <div className="flex h-full flex-col">
                     <ChatHeader
                       onClose={() => {
@@ -503,7 +486,7 @@ function AISidebar({ className }: AISidebarProps) {
                       isFullScreen={isFullScreen}
                       isPopup={isPopup}
                       chatMessages={chatMessages}
-                      isPro={isPro}
+                      isPro={isPro ?? false}
                       onUpgrade={handleUpgrade}
                       onNewChat={handleNewChat}
                     />
@@ -549,7 +532,7 @@ function AISidebar({ className }: AISidebarProps) {
                   isFullScreen={isFullScreen}
                   isPopup={isPopup}
                   chatMessages={chatMessages}
-                  isPro={isPro}
+                  isPro={isPro ?? false}
                   onUpgrade={handleUpgrade}
                   onNewChat={handleNewChat}
                 />

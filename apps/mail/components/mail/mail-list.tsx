@@ -1,5 +1,3 @@
-'use client';
-
 import {
   Archive2,
   Bell,
@@ -41,13 +39,14 @@ import { useMail, type Config } from '@/components/mail/use-mail';
 import { useMailNavigation } from '@/hooks/use-mail-navigation';
 import { focusedIndexAtom } from '@/hooks/use-mail-navigation';
 import { backgroundQueueAtom } from '@/store/backgroundQueue';
+import { useActiveConnection } from '@/hooks/use-connections';
 import { useThread, useThreads } from '@/hooks/use-threads';
 import { useAISidebar } from '@/components/ui/ai-sidebar';
 import { useSearchValue } from '@/hooks/use-search-value';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { highlightText } from '@/lib/email-utils.client';
 import { useHotkeysContext } from 'react-hotkeys-hook';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useNavigate } from 'react-router';
 import { useTRPC } from '@/providers/query-provider';
 import { useThreadLabels } from '@/hooks/use-labels';
 import { useKeyState } from '@/hooks/use-hot-key';
@@ -56,14 +55,13 @@ import { RenderLabels } from './render-labels';
 import { Badge } from '@/components/ui/badge';
 import { useDraft } from '@/hooks/use-drafts';
 import { useStats } from '@/hooks/use-stats';
-import { useTranslations } from 'next-intl';
+import { useTranslations } from 'use-intl';
 import { useTheme } from 'next-themes';
 import { Button } from '../ui/button';
 import { useQueryState } from 'nuqs';
 import { Categories } from './mail';
 import items from './demo.json';
 import { useAtom } from 'jotai';
-import Image from 'next/image';
 import { toast } from 'sonner';
 import  MailListSkeleton  from '../ui/loaders/mail-list';
 import DraftListSkeleton from '../ui/loaders/draft-list';
@@ -751,13 +749,14 @@ export const MailList = memo(({ isCompact }: MailListProps) => {
   const { folder } = useParams<{ folder: string }>();
   const { data: session } = useSession();
   const t = useTranslations();
-  const router = useRouter();
+  const navigate = useNavigate();
   const [, setThreadId] = useQueryState('threadId');
   const [, setDraftId] = useQueryState('draftId');
   const [category, setCategory] = useQueryState('category');
   const [searchValue, setSearchValue] = useSearchValue();
   const { enableScope, disableScope } = useHotkeysContext();
   const [{ refetch, isLoading, isFetching, hasNextPage }, items, , loadMore] = useThreads();
+  const { data: activeConnection } = useActiveConnection();
 
   const allCategories = Categories();
 
@@ -767,9 +766,9 @@ export const MailList = memo(({ isCompact }: MailListProps) => {
   const sessionData = useMemo(
     () => ({
       userId: session?.user?.id ?? '',
-      connectionId: session?.connectionId ?? null,
+      connectionId: activeConnection?.id ?? null,
     }),
-    [session],
+    [activeConnection, session],
   );
 
   // Set initial category search value only if not in special folders
@@ -973,7 +972,7 @@ export const MailList = memo(({ isCompact }: MailListProps) => {
           ) : !isLoading && !items.length ? (
             <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center">
               <div className="flex flex-col items-center justify-center gap-2 text-center">
-                <Image
+                <img
                   suppressHydrationWarning
                   src={resolvedTheme === 'dark' ? '/empty-state.svg' : '/empty-state-light.svg'}
                   alt="Empty Inbox"
@@ -1016,25 +1015,23 @@ export const MailList = memo(({ isCompact }: MailListProps) => {
                     />
                   );
                 })}
-              {items.length >= 9 && hasNextPage && !isFetching && (
-                <Button
-                  variant={'ghost'}
-                  className="w-full rounded-none"
-                  onMouseDown={handleScroll}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-900 border-t-transparent dark:border-white dark:border-t-transparent" />
-                      {t('common.actions.loading')}
-                    </div>
-                  ) : (
-                    <>
-                      {t('common.mail.loadMore')} <ChevronDown />
-                    </>
-                  )}
-                </Button>
-              )}
+              <Button
+                variant={'ghost'}
+                className="w-full rounded-none"
+                onMouseDown={handleScroll}
+                disabled={isLoading || items.length <= 9 || !hasNextPage || isFetching}
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-900 border-t-transparent dark:border-white dark:border-t-transparent" />
+                    {t('common.actions.loading')}
+                  </div>
+                ) : (
+                  <>
+                    {t('common.mail.loadMore')} <ChevronDown />
+                  </>
+                )}
+              </Button>
             </div>
           )}
         </ScrollArea>
